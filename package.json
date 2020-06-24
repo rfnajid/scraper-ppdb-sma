@@ -1,0 +1,33 @@
+{
+  "name": "scraper-ppdb-sma",
+  "version": "1.0.0",
+  "description": "scraper data pendaftaran ppdbjatim.net",
+  "main": "scraper.js",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.3",
+    "csv-writer": "^1.6.0",
+    "axios": "^0.19.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "node scraper.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rfnajid/scraper-ppdb-sma.git"
+  },
+  "keywords": [
+    "scraper",
+    "ppdb",
+    "school",
+    "education",
+    "indonesia"
+  ],
+  "author": "Ridhazis Faranto Najid",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rfnajid/scraper-ppdb-sma/issues"
+  },
+  "homepage": "https://github.com/rfnajid/scraper-ppdb-sma#readme"
+}
