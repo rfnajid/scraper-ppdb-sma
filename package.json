@@ -4,14 +4,18 @@
   "description": "scraper data pendaftaran ppdbjatim.net",
   "main": "scraper.js",
   "dependencies": {
+    "axios": "^0.19.2",
     "cheerio": "^1.0.0-rc.3",
     "csv-writer": "^1.6.0",
-    "axios": "^0.19.2"
+    "papaparse": "^5.2.0"
   },
   "devDependencies": {},
   "scripts": {
-    "start": "node scraper.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "npm run zonasi",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "zonasi": "node scraper-sma-zonasi.js",
+    "nilai": "node scraper-sma-nilai.js",
+    "smk": "node scraper-smk.js"
   },
   "repository": {
     "type": "git",
