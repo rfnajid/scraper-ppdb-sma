@@ -2,14 +2,20 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const fs = require('fs');
+const { resolve } = require('path');
 
-const baseUrl = 'https://01.ppdbjatim.net/pengumuman/tahap3/us/sekolah/';
-const path = 'result/tahap3/sma/';
-const schoolIdStart = 1;
-const schoolIdEnd = 22;
+const VAR = {
+    baseUrl: 'https://01.ppdbjatim.net/pengumuman/tahap3/us/sekolah/',
+    path: 'result/tahap3/sma/',
+    schoolIdStart: 1,
+    schoolIdEnd: 22,
+    startTime: Date(),
+    errors: []
+};
 
-for(let schoolId=schoolIdStart; schoolId<= schoolIdEnd; schoolId++){
-    const url = baseUrl + schoolId;
+function scrape(schoolId) {
+
+    const url = VAR.baseUrl + schoolId;
 
     const csvHeader = [
         {id: 'schoolId', title: 'School ID'},
@@ -21,11 +27,11 @@ for(let schoolId=schoolIdStart; schoolId<= schoolIdEnd; schoolId++){
     ];
 
     const csvWriter = createCsvWriter({
-        path: path + 'csv/' + schoolId + '.csv',
+        path: VAR.path + 'csv/' + schoolId + '.csv',
         header: csvHeader
     });
 
-    axios(url)
+    return axios(url)
     .then(response => {
         console.log('hit ' + schoolId + ', url ' + url);
         const html = response.data;
@@ -61,21 +67,44 @@ for(let schoolId=schoolIdStart; schoolId<= schoolIdEnd; schoolId++){
             }
         }
         json = JSON.stringify(json);
-        fs.writeFile(path + 'json/' + schoolId + '.json', json, 'utf8', () => {});
+        fs.writeFile(VAR.path + 'json/' + schoolId + '.json', json, 'utf8', () => {});
+
+        resolve();
     })
-    .catch(console.error);
+    .catch((error) => {
+        console.log('ERROR at school ' + schoolId);
+        VAR.errors.push({
+            schoolId: schoolId,
+            message: error.message
+        });
+
+        resolve();
+    });
 }
 
-let scrapeInfo = {
-    time: Date(),
-    baseUrl: baseUrl,
-    path: path,
-    schoolIdStart: schoolIdStart,
-    schoolIdEnd: schoolIdEnd
+const requests = [];
+
+for(let schoolId=VAR.schoolIdStart; schoolId<= VAR.schoolIdEnd; schoolId++){
+    requests.push(scrape(schoolId));
 }
 
-scrapeInfo = JSON.stringify(scrapeInfo);
+console.log('TOTAL REQUEST : ', requests.length);
 
-fs.writeFile(path + 'scrape-info.json',scrapeInfo, 'utf8', () => {
-    console.log('SCRAPE INFO : ' + scrapeInfo);
+Promise.all(requests).then(()=>{
+
+    let scrapeInfo = {
+        startTime: VAR.startTime,
+        endTime: Date(),
+        baseUrl: VAR.baseUrl,
+        path: VAR.path,
+        schoolIdStart: VAR.schoolIdStart,
+        schoolIdEnd: VAR.schoolIdEnd,
+        errors: VAR.errors
+    }
+
+    scrapeInfo = JSON.stringify(scrapeInfo);
+
+    fs.writeFile(VAR.path + 'scrape-info.json',scrapeInfo, 'utf8', () => {
+        console.log('SCRAPE INFO : ' + scrapeInfo);
+    });
 });

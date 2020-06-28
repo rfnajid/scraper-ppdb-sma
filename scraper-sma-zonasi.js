@@ -2,6 +2,7 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const fs = require('fs');
+const { resolve } = require('path');
 
 
 const VAR = {
@@ -18,7 +19,9 @@ const VAR = {
     },
     schoolIdStart: 1,
     schoolIdEnd: 22,
-    schoolInklusi: [ 8, 10 ]
+    schoolInklusi: [ 8, 10 ],
+    startTime: Date(),
+    errors: []
 };
 
 function scrape(schoolId, type = 'umum') {
@@ -39,7 +42,7 @@ function scrape(schoolId, type = 'umum') {
         header: csvHeader
     });
 
-    axios(url)
+    return axios(url)
     .then(response => {
         console.log('hit ' + type + ' : ' + schoolId + ', url ' + url);
         const html = response.data;
@@ -76,32 +79,50 @@ function scrape(schoolId, type = 'umum') {
         }
         json = JSON.stringify(json);
         fs.writeFile(path + 'json/' + schoolId + '.json', json, 'utf8', () => {});
+
+        resolve();
     })
-    .catch(console.error);
+    .catch((error) => {
+        console.log('ERROR at school ' + schoolId);
+        VAR.errors.push({
+            schoolId: schoolId,
+            type: type,
+            message: error.message
+        });
+
+        resolve();
+    });
 }
 
+const requests = [];
 
 // scrape zonasi umum
 for(let schoolId=VAR.schoolIdStart; schoolId<= VAR.schoolIdEnd; schoolId++){
-    scrape(schoolId,'umum');
+    requests.push(scrape(schoolId,'umum'));
 }
 
 // scrape zonasi inklusi
 VAR.schoolInklusi.forEach(schoolId => {
-    scrape(schoolId,'inklusi');
+    requests.push(scrape(schoolId,'inklusi'));
 });
 
-let scrapeInfo = {
-    time: Date(),
-    urlUmum: VAR.baseUrl('umum'),
-    urlInklusi: VAR.baseUrl('inklusi'),
-    schoolIdStart: VAR.schoolIdStart,
-    schoolIdEnd: VAR.schoolIdEnd,
-    schoolInklusi: VAR.schoolInklusi
-}
+console.log('TOTAL REQUEST : ', requests.length);
 
-scrapeInfo = JSON.stringify(scrapeInfo);
+Promise.all(requests).then(() => {
+    let scrapeInfo = {
+        startTime: VAR.startTime,
+        endTime: Date(),
+        urlUmum: VAR.baseUrl('umum'),
+        urlInklusi: VAR.baseUrl('inklusi'),
+        schoolIdStart: VAR.schoolIdStart,
+        schoolIdEnd: VAR.schoolIdEnd,
+        schoolInklusi: VAR.schoolInklusi,
+        errors: VAR.errors
+    }
 
-fs.writeFile(VAR.path() + 'scrape-info.json',scrapeInfo, 'utf8', () => {
-    console.log('SCRAPE INFO : ' + scrapeInfo);
+    scrapeInfo = JSON.stringify(scrapeInfo);
+
+    fs.writeFile(VAR.path() + 'scrape-info.json',scrapeInfo, 'utf8', () => {
+        console.log('SCRAPE INFO : ' + scrapeInfo);
+    });
 });

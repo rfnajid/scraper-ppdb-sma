@@ -3,8 +3,9 @@ const cheerio = require('cheerio');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const fs = require('fs');
 const papa = require('papaparse');
+const { resolve } = require('path');
+const { request } = require('http');
 const fileDataSMK = './data/list-smk.csv';
-
 
 const VAR = {
     baseUrl(type = 'umum') {
@@ -19,7 +20,8 @@ const VAR = {
         }
     },
     schools: [],
-    errors:[]
+    errors:[],
+    startTime: Date()
 };
 
 papa.parse(fs.readFileSync(fileDataSMK, "utf8"), {
@@ -31,7 +33,17 @@ papa.parse(fs.readFileSync(fileDataSMK, "utf8"), {
     }
 });
 
-function scrape(schoolId, type = 'umum') {
+async function createRequest(schoolId, type = 'umum'){
+    const url = VAR.baseUrl(type) + schoolId;
+    return await axios(url, {timeout: 120*1000})
+}
+
+async function scrape(param) {
+
+    const type = param.type;
+    const schoolId = param.schoolId;
+    const request = param.request;
+
     const url = VAR.baseUrl(type) + schoolId;
     const path = VAR.path(type);
 
@@ -40,7 +52,7 @@ function scrape(schoolId, type = 'umum') {
         {id: 'no', title: 'No'},
         {id: 'noUN', title: 'No UN'},
         {id: 'nama', title: 'Nama'},
-        {id: 'jarak', title: 'Jarak'},
+        {id: 'nilai', title: 'Nilai'},
         {id: 'url', title: 'url'}
     ];
 
@@ -49,26 +61,35 @@ function scrape(schoolId, type = 'umum') {
         header: csvHeader
     });
 
-    axios(url)
-    .then(response => {
-        console.log('hit ' + type + ' : ' + schoolId + ', url ' + url);
+    console.log('hit ' + type + ' : ' + schoolId + ', url ' + url);
+
+    await request.then(response => {
         const html = response.data;
         const $ = cheerio.load(html)
         const table = $('tbody > tr');
         const students = [];
+        let min = 0;
+        let max = 0;
 
-        // scrape
-        table.each(function (index) {
-            const no = index+1;
-            const noUN = $(this).find('td:nth-child(2)').text();
-            const nama = $(this).find('td:nth-child(3) > a > b').text();
-            const jarak = $(this).find('td:nth-child(4)').text().replace(' Meter','');
-            const url = $(this).find('td:nth-child(3) > a').attr('href');
+        const totalData = parseInt($(this).find('.font-tipis.text-center > strong').text());
 
-            students.push({
-                schoolId, no, noUN, nama, jarak, url
+        if(totalData > 0){
+            // scrape
+            table.each(function (index) {
+                const no = index+1;
+                const noUN = $(this).find('td:nth-child(2)').text();
+                const nama = $(this).find('td:nth-child(3) > a > b').text();
+                const nilai = $(this).find('td:nth-child(4)').text().replace(' Meter','');
+                const url = $(this).find('td:nth-child(3) > a').attr('href');
+
+                students.push({
+                    schoolId, no, noUN, nama, nilai, url
+                });
             });
-        });
+
+            min = parseInt(students[0].nilai);
+            max = parseInt(students[students.length - 1].nilai);
+        }
 
         // write csv
         csvWriter.writeRecords(students).then(
@@ -80,39 +101,63 @@ function scrape(schoolId, type = 'umum') {
             data: students,
             info: {
                 size: students.length,
-                min : parseInt(students[0].jarak),
-                max : parseInt(students[students.length-1].jarak)
+                min : min,
+                max : max
             }
         }
         json = JSON.stringify(json);
         fs.writeFile(path + 'json/' + schoolId + '.json', json, 'utf8', () => {});
+
+        resolve();
     })
     .catch((error) => {
         console.log('ERROR at school ' + schoolId);
         VAR.errors.push({
             schoolId: schoolId,
+            type: type,
             message: error.message
         });
+
+        resolve();
     });
 }
 
+const requests = [];
+
 // scrape
 VAR.schools.forEach(school => {
-    scrape(school.id, 'umum');
-    scrape(school.id, 'inklusi')
+    requests.push({
+        request: createRequest(school.id, 'umum'),
+        schoolId: school.id,
+        type: 'umum'
+    });
+    requests.push({
+        request: createRequest(school.id, 'inklusi'),
+        schoolId: school.id,
+        type: 'inklusi'
+    });
 });
 
-await();
+console.log('TOTAL REQUEST : ', requests.length);
 
-let scrapeInfo = {
-    time: Date(),
-    urlUmum: VAR.baseUrl('umum'),
-    urlInklusi: VAR.baseUrl('inklusi'),
-    errors: VAR.errors
+async function requestSequentially(){
+    for(let i = 0; i < requests.length; i++){
+         await scrape(requests[i]);
+    }
 }
 
-scrapeInfo = JSON.stringify(scrapeInfo);
+requestSequentially().then(()=>{
+    let scrapeInfo = {
+        startTime: VAR.startTime,
+        endTime: Date(),
+        urlUmum: VAR.baseUrl('umum'),
+        urlInklusi: VAR.baseUrl('inklusi'),
+        errors: VAR.errors
+    }
 
-fs.writeFile(VAR.path() + 'scrape-info.json',scrapeInfo, 'utf8', () => {
-    console.log('SCRAPE INFO : ' + scrapeInfo);
-});
+    scrapeInfo = JSON.stringify(scrapeInfo);
+
+    fs.writeFile(VAR.path() + 'scrape-info.json',scrapeInfo, 'utf8', () => {
+        console.log('SCRAPE INFO : ' + scrapeInfo);
+    });
+})

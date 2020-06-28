@@ -11,10 +11,10 @@
   },
   "devDependencies": {},
   "scripts": {
-    "start": "npm run zonasi",
+    "start": "npm run sma-zonasi",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "zonasi": "node scraper-sma-zonasi.js",
-    "nilai": "node scraper-sma-nilai.js",
+    "sma-zonasi": "node scraper-sma-zonasi.js",
+    "sma-nilai": "node scraper-sma-nilai.js",
     "smk": "node scraper-smk.js"
   },
   "repository": {
