@@ -35,7 +35,7 @@ papa.parse(fs.readFileSync(fileDataSMK, "utf8"), {
 
 async function createRequest(schoolId, type = 'umum'){
     const url = VAR.baseUrl(type) + schoolId;
-    return await axios(url, {timeout: 120*1000})
+    return await axios(url, {timeout:  5 * 60 * 1000})
 }
 
 async function scrape(param) {
@@ -71,7 +71,7 @@ async function scrape(param) {
         let min = 0;
         let max = 0;
 
-        const totalData = parseInt($(this).find('.font-tipis.text-center > strong').text());
+        const totalData = parseInt($('.font-tipis.text-center > strong').text());
 
         if(totalData > 0){
             // scrape
