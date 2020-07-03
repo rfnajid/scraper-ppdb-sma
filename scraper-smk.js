@@ -79,16 +79,17 @@ async function scrape(param) {
                 const no = index+1;
                 const noUN = $(this).find('td:nth-child(2)').text();
                 const nama = $(this).find('td:nth-child(3) > a > b').text();
-                const nilai = $(this).find('td:nth-child(4)').text().replace(' Meter','');
                 const url = $(this).find('td:nth-child(3) > a').attr('href');
+                let nilai = $(this).find('td:nth-child(4)').text();
+                nilai = parseFlaot(nilai);
 
                 students.push({
                     schoolId, no, noUN, nama, nilai, url
                 });
             });
 
-            min = parseInt(students[0].nilai);
-            max = parseInt(students[students.length - 1].nilai);
+            min = students[0].nilai;
+            max = students[students.length - 1].nilai;
         }
 
         // write csv

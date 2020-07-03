@@ -55,8 +55,9 @@ function scrape(schoolId, type = 'umum') {
             const no = index+1;
             const noUN = $(this).find('td:nth-child(2)').text();
             const nama = $(this).find('td:nth-child(3) > a > b').text();
-            const jarak = $(this).find('td:nth-child(4)').text().replace(' Meter','');
             const url = $(this).find('td:nth-child(3) > a').attr('href');
+            let jarak = $(this).find('td:nth-child(4)').text().replace(' Meter','');
+            jarak = parseInt(jarak);
 
             students.push({
                 schoolId, no, noUN, nama, jarak, url
@@ -73,8 +74,8 @@ function scrape(schoolId, type = 'umum') {
             data: students,
             info: {
                 size: students.length,
-                min : parseInt(students[0].jarak),
-                max : parseInt(students[students.length-1].jarak)
+                min : students[0].jarak,
+                max : students[students.length-1].jarak
             }
         }
         json = JSON.stringify(json);

@@ -44,8 +44,9 @@ function scrape(schoolId) {
             const no = index+1;
             const noUN = $(this).find('td:nth-child(2)').text();
             const nama = $(this).find('td:nth-child(3) > a > b').text();
-            const nilai = $(this).find('td:nth-child(4)').text();
             const url = $(this).find('td:nth-child(3) > a').attr('href');
+            let nilai = $(this).find('td:nth-child(4)').text();
+            nilai = parseFloat(nilai);
 
             students.push({
                 schoolId, no, noUN, nama, nilai, url
@@ -62,8 +63,8 @@ function scrape(schoolId) {
             data: students,
             info: {
                 size: students.length,
-                max : parseInt(students[0].nilai),
-                min : parseInt(students[students.length-1].nilai)
+                max : students[0].nilai,
+                min : students[students.length-1].nilai
             }
         }
         json = JSON.stringify(json);
